@@ -23,10 +23,16 @@ class ProjectsController < ApplicationController
   end
 
   def edit
+    if !project.owner?(current_user)
+      flash[:danger] = 'Trying to edit a project with an user that is not in the owner list.'
+      render :show
+    end
     project
   end
 
   def update
+    return unless project.owner?(current_user)
+
     params[:project].delete(:jira_password) if (params[:project] || {})[:jira_password].blank?
     project.update_attributes(project_params)
     set_project_users
@@ -51,10 +57,18 @@ class ProjectsController < ApplicationController
   private
 
   def set_project_users
-    names = params[:project][:users].is_a?(Array) ? params[:project][:users] : []
-    users = User.where(name: names) << current_user
-    users.uniq!
-    @project.users = users
+    names = params[:project][:members].is_a?(Array) ? params[:project][:members] : []
+    members = User.where(name: names).to_a
+    members.uniq!
+
+    names = params[:project][:owners].is_a?(Array) ? params[:project][:owners] : []
+    owners = User.where(name: names).to_a
+    owners.uniq!
+
+    # add current user as owner if it is empty to keep the project editable by someone
+    owners << current_user if owners.empty?
+
+    @project.update_users!(owners, members)
   end
 
   def project_params

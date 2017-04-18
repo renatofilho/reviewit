@@ -1,5 +1,12 @@
 class Project < ActiveRecord::Base
-  has_and_belongs_to_many :users
+  has_many :projects_users, class_name: "ProjectsUsers",
+                            foreign_key: "project_id",
+                            dependent: :destroy
+  has_many :users, through: :projects_users
+
+  has_many :owners, -> { where(owner: true) }, class_name: 'ProjectsUsers'
+  has_many :members, -> { where(owner: false) }, class_name: 'ProjectsUsers'
+
   has_many :merge_requests, dependent: :destroy
 
   validates :name, presence: true
@@ -17,7 +24,30 @@ class Project < ActiveRecord::Base
     Digest::MD5.hexdigest(linter)
   end
 
+  def update_users!(owners, members)
+    raise ActiveRecord::RecordNotSaved, 'Project must have a owner.' if owners.empty?
+
+    # if the user is on the owner list remove it from member list
+    members.delete_if { |m| owners.include?(m) }
+
+    # remove previous users
+    projects_users.clear()
+
+    set_users(members, false)
+    set_users(owners, true)
+  end
+
+  def owner?(who)
+    return who.nil? ? false : owners.exists?(user_id: who.id)
+  end
+
   private
+
+  def set_users(users, is_owner)
+    users.each do |user|
+      ProjectsUsers.create(project_id: id, user_id: user.id, owner: is_owner)
+    end
+  end
 
   def validate_repository
     is_valid = URI.regexp =~ repository && /\A[^ ;&|]+\z/ =~ repository

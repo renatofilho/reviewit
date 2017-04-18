@@ -15,12 +15,18 @@
   %i (a script in the project directory that will run before any MR creation or update)
   %br/
   = f.text_field :linter, placeholder: 'Command run by CLI before create/update a MR'
-
-  %label.required Users
+  
+  %label.required Owners
   %br/
-  %ul#project_users{ 'data-myself' => current_user.name.to_s, 'data-users' => User.all_names.join('|').to_s }
-    - @project.users.each do |user|
-      %li= user.name
+  %ul#project_owners{ 'data-field' => 'owners', 'data-myself' => current_user.name.to_s, 'data-users' => User.all_names.join('|').to_s }
+    - @project.owners.each do |owner|
+      %li= @project.users.find(owner.user_id).name
+
+  %label.required Members
+  %br/
+  %ul#project_members{ 'data-field' => 'members', 'data-users' => User.all_names.join('|').to_s }
+    - @project.members.each do |member|
+      %li= @project.users.find(member.user_id).name
 
   %h1 Jira integration
 

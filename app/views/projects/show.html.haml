@@ -11,7 +11,9 @@
 
 %p= @project.users.pluck(:name).to_sentence
 %p
-  Didn't like it!? So #{link_to 'edit your project', edit_project_path(@project)}.
+  - if @project.owner?(current_user)
+    Didn't like it!? So #{link_to 'edit your project', edit_project_path(@project)}.
+
 
 %h2 Statistics
 

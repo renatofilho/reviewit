@@ -3,7 +3,11 @@ class User < ActiveRecord::Base
   # :confirmable, :lockable, :timeoutable and :omniauthable
   devise :database_authenticatable, :registerable,
          :recoverable, :rememberable, :trackable, :validatable
-  has_and_belongs_to_many :projects
+
+  has_many :projects_users, class_name: "ProjectsUsers",
+                            foreign_key: "user_id",
+                            dependent: :destroy
+  has_many :projects, through: :projects_users
 
   before_create :generate_api_token
   has_many :comments
